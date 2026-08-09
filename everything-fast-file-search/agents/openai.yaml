@@ -1,0 +1,4 @@
+interface:
+  display_name: "Everything Fast File Search"
+  short_description: "Fast bounded Windows file discovery with Everything"
+  default_prompt: "Use $everything-fast-file-search to locate the smallest useful set of matching local Windows files, return structured candidate paths, and avoid broad recursive scans."
