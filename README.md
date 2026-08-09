@@ -45,12 +45,16 @@ The design goal is **bounded context**, not just fast search.
 
 ## Requirements
 
-- Windows
-- Everything 1.4+ installed
-- Everything Search Client (`Everything.exe`)
+> **Important Prerequisite:**
+> This skill requires **Everything Search Client (`Everything.exe`)** to be downloaded, installed, and running in the background on your Windows machine.
+> This skill provides an agent interface to your local Everything index via `es.exe`; it does **not** install Everything for you.
+
+- Windows OS
+- Everything 1.4+ installed (Desktop client running in background)
 - Everything command-line interface (`es.exe`)
 - Windows PowerShell 5.1 or newer
 
+Official Everything Download: https://www.voidtools.com/
 Official Everything CLI documentation: https://www.voidtools.com/support/everything/command_line_interface/
 
 ## Repository layout
