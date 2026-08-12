@@ -39,6 +39,8 @@ The design goal is **bounded context**, not just fast search.
 - Optional SHA-256 for small candidate sets
 - Automatic Everything IPC readiness check
 - Automatic start of `Everything.exe` on IPC Error 8 when safe
+- Error 8 diagnosis, including known elevation mismatch detection
+- One bounded 750 ms transient retry for readiness and actual searches
 - PowerShell 5.1 compatible scripts
 - Regression coverage for the PowerShell 5.1 + `es.exe` argument-construction pitfall
 - Fail-closed guidance: search results locate candidates; they do not establish semantic authority
@@ -74,13 +76,16 @@ everything-fast-file-search-skill/
    ├─ scripts/
    │  ├─ Resolve-EverythingCli.ps1
    │  ├─ Ensure-EverythingReady.ps1
+   │  ├─ Diagnose-EverythingIpc.ps1
    │  ├─ Search-Everything.ps1
+   │  ├─ Search-Everything.Core.R1.ps1
    │  └─ Get-FileIdentity.ps1
    ├─ references/
    │  ├─ everything-cli-notes.md
    │  └─ token-efficient-workflow.md
    └─ tests/
       ├─ Test-ExtensionArgumentRegression.ps1
+      ├─ Test-EverythingIpcDiagnostic.ps1
       ├─ Test-SearchSmoke.ps1
       ├─ STATIC_TEST_PLAN.md
       └─ fixtures/
@@ -122,6 +127,8 @@ inside this repository, then restart Codex.
 $skill = "$env:USERPROFILE\.agents\skills\everything-fast-file-search"
 & "$skill\scripts\Ensure-EverythingReady.ps1"
 ```
+
+For normal runtime discovery, invoke `Search-Everything.ps1` directly; it performs the readiness check. A first IPC Error 8 is retried once after 750 ms. A known elevation mismatch fails fast, while a transient Error 8 during the actual search is retried once with the same search parameters.
 
 ### Search by basename
 
@@ -213,6 +220,13 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
   -File ".\everything-fast-file-search\tests\Test-ExtensionArgumentRegression.ps1"
 ```
 
+Run the IPC and search-retry regression:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass `
+  -File ".\everything-fast-file-search\tests\Test-EverythingIpcDiagnostic.ps1"
+```
+
 Run the smoke test:
 
 ```powershell
@@ -230,7 +244,7 @@ This repository uses semantic versioning:
 - minor: backward-compatible features;
 - major: breaking behavior or interface changes.
 
-The first public release is **v1.0.0**.
+Current release preparation target: **v1.1.0**.
 
 ## License
 
