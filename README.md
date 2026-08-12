@@ -244,7 +244,7 @@ This repository uses semantic versioning:
 - minor: backward-compatible features;
 - major: breaking behavior or interface changes.
 
-Current release preparation target: **v1.1.0**.
+Current release: **v1.1.0**.
 
 ## License
 

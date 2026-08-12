@@ -12,6 +12,7 @@ Contributions are welcome when they preserve the project's core design goals:
 ## Before opening a pull request
 
 - Test against a running Everything 1.4+ instance.
+- Run `Test-EverythingIpcDiagnostic.ps1`.
 - Run `Test-ExtensionArgumentRegression.ps1`.
 - Run `Test-SearchSmoke.ps1`.
 - Confirm no personal paths, project names, proprietary filenames, or private data are included.
