@@ -9,16 +9,17 @@ Use Everything as the first-choice locator for local Windows file discovery when
 
 ## Core workflow
 
-1. Run `scripts/Ensure-EverythingReady.ps1` before searching.
-2. If Everything IPC is ready, continue immediately.
-3. If `es.exe` returns Error 8 and `Everything.exe` is not running, allow the readiness script to start Everything and retry IPC.
-4. If Everything is already running but IPC is unavailable, do not terminate or restart it; retry briefly and fail closed if IPC does not recover.
-5. Run `scripts/Search-Everything.ps1` with the narrowest useful `Root`, query, extension filters, and result cap.
-6. Prefer `MaxResults <= 20` for ordinary discovery.
-7. Export CSV/JSON when another step needs structured candidates instead of verbose console output.
-8. Compute SHA-256 only after the candidate set is small.
-9. Treat Everything results as locators only. Do not infer that the first, newest, largest, or similarly named result is authoritative.
-10. If a high-stakes task requires identity confirmation, apply domain-specific checks outside this skill.
+1. Invoke `scripts/Search-Everything.ps1` directly for normal runtime discovery; it invokes readiness automatically.
+2. If readiness returns Error 8, retry the same IPC probe once after 750 ms.
+3. Diagnose a second Error 8 before any longer recovery path. Fail fast on `IPC_ELEVATION_MISMATCH`.
+4. If readiness succeeds but the actual search returns Error 8, retry that identical search once after 750 ms.
+5. Do not automatically retry non-8 search errors.
+6. Run `scripts/Search-Everything.ps1` with the narrowest useful `Root`, query, extension filters, and result cap.
+7. Prefer `MaxResults <= 20` for ordinary discovery.
+8. Export CSV/JSON when another step needs structured candidates instead of verbose console output.
+9. Compute SHA-256 only after the candidate set is small.
+10. Treat Everything results as locators only. Do not infer that the first, newest, largest, or similarly named result is authoritative.
+11. If a high-stakes task requires identity confirmation, apply domain-specific checks outside this skill.
 
 ## PowerShell 5.1 argument rule
 

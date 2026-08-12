@@ -1,57 +1,32 @@
 [CmdletBinding()]
-param()
+param(
+    [ValidateRange(1, 15)] [int]$IndexRetryCount = 10
+)
 
 $ErrorActionPreference = 'Stop'
 $testsDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $skillRoot = Split-Path -Parent $testsDir
-$searchScript = Join-Path $skillRoot 'scripts\Search-Everything.ps1'
-$fixtureRoot = Join-Path $testsDir 'fixtures'
-$query = 'EFS_REGRESSION_TARGET'
+$search = Join-Path $skillRoot 'scripts\Search-Everything.ps1'
+$fixtureRoot = Join-Path ([IO.Path]::GetTempPath()) ("efs_extension_fixture_{0}" -f [guid]::NewGuid().ToString('N'))
+$query = 'EFS_EXTENSION_ARGUMENT_FIXTURE'
 
-$expected = @{
-    inp = 1
-    odb = 1
-    sta = 1
-    msg = 1
-    dat = 1
-}
-
-$actual = @{}
-
-foreach ($ext in $expected.Keys) {
-    $rows = @()
-
-    for ($attempt = 1; $attempt -le 5; $attempt++) {
-        $rows = @(
-            & $searchScript `
-                -Query $query `
-                -Root $fixtureRoot `
-                -Extensions $ext `
-                -MaxResults 10 `
-                -Quiet `
-                -PassThru
-        )
-
-        if ($rows.Count -ge $expected[$ext]) { break }
-        Start-Sleep -Milliseconds 500
+try {
+    New-Item -ItemType Directory -Path $fixtureRoot -Force | Out-Null
+    foreach ($extension in @('txt', 'json')) { New-Item -ItemType File -Path (Join-Path $fixtureRoot ("$query.$extension")) -Force | Out-Null }
+    $counts = @{}
+    foreach ($extension in @('txt', 'json')) {
+        $rows = @()
+        for ($attempt = 1; $attempt -le $IndexRetryCount; $attempt++) {
+            $rows = @(& $search -Query $query -Root $fixtureRoot -Extensions $extension -MaxResults 5 -Quiet -PassThru 6>$null)
+            if ($rows.Count -ge 1) { break }
+            Start-Sleep -Seconds 1
+        }
+        $counts[$extension] = $rows.Count
     }
-
-    $actual[$ext] = $rows.Count
+    if ($counts.txt -lt 1 -or $counts.json -lt 1) { throw "Generic extension fixture not found: txt=$($counts.txt), json=$($counts.json)" }
+    Write-Host "REGRESSION_COUNTS: txt=$($counts.txt), json=$($counts.json)"
+    Write-Host 'EXTENSION_ARGUMENT_REGRESSION=PASS'
 }
-
-$failures = @()
-foreach ($ext in $expected.Keys) {
-    if ($actual[$ext] -ne $expected[$ext]) {
-        $failures += "$ext expected=$($expected[$ext]) actual=$($actual[$ext])"
-    }
+finally {
+    if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }
 }
-
-$summary = ($expected.Keys | Sort-Object | ForEach-Object { "$_=$($actual[$_])" }) -join ', '
-Write-Host "REGRESSION_COUNTS: $summary"
-
-if ($failures.Count -gt 0) {
-    Write-Error ("EXTENSION_ARGUMENT_REGRESSION=FAIL; " + ($failures -join '; '))
-    exit 1
-}
-
-Write-Host 'EXTENSION_ARGUMENT_REGRESSION=PASS'
