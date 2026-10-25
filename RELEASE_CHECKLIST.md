@@ -10,6 +10,8 @@ Use this checklist before publishing a release.
 - [ ] `Test-ExtensionArgumentRegression.ps1` passes on Windows PowerShell 5.1.
 - [ ] `Test-EverythingIpcDiagnostic.ps1` passes, including synthetic Error 8 retry cases.
 - [ ] `Test-SearchSmoke.ps1` passes.
-- [ ] Everything auto-start behavior is tested without terminating an existing Everything process.
+- [ ] CLI resolution, native transport and Unicode CSV/JSON regressions pass on Windows PowerShell 5.1 and an available PowerShell 7 host.
+- [ ] Launch errors 5/623 retain structured evidence and request approval-only host verification; other launch errors are not mislabeled.
+- [ ] Read-only searches never start a client; startup authority and both one-shot 750 ms retries are covered synthetically without terminating any real process.
 - [ ] `CHANGELOG.md` contains the release entry.
 - [ ] Version tag follows semantic versioning.

@@ -25,8 +25,20 @@ try {
     }
     if ($counts.txt -lt 1 -or $counts.json -lt 1) { throw "Generic extension fixture not found: txt=$($counts.txt), json=$($counts.json)" }
     Write-Host "REGRESSION_COUNTS: txt=$($counts.txt), json=$($counts.json)"
+    $folder = Join-Path $fixtureRoot ($query + '_folder')
+    New-Item -ItemType Directory -Path $folder | Out-Null
+    $folderRows = @()
+    for ($attempt=1; $attempt -le $IndexRetryCount; $attempt++) {
+        $folderRows = @(& $search -Query $query -Root $fixtureRoot -ItemType Folder -MaxResults 5 -Quiet -PassThru 6>$null)
+        if ($folderRows.Count -ge 1) { break }
+        Start-Sleep -Seconds 1
+    }
+    if ($folderRows.Count -ne 1 -or $folderRows[0].ItemType -ne 'Folder' -or $folderRows[0].DiskStatus -ne 'PRESENT') { throw 'Legacy Folder interface failed.' }
+    Write-Host 'LEGACY_FOLDER_INTERFACE=PASS'
     Write-Host 'EXTENSION_ARGUMENT_REGRESSION=PASS'
 }
 finally {
-    if (Test-Path -LiteralPath $fixtureRoot) { Remove-Item -LiteralPath $fixtureRoot -Recurse -Force }
+    $resolved = [IO.Path]::GetFullPath($fixtureRoot)
+    $tempPrefix = [IO.Path]::GetFullPath([IO.Path]::GetTempPath()).TrimEnd('\') + '\'
+    if ($resolved.StartsWith($tempPrefix, [StringComparison]::OrdinalIgnoreCase) -and [IO.Path]::GetFileName($resolved) -like 'efs_extension_fixture_*' -and (Test-Path -LiteralPath $resolved)) { Remove-Item -LiteralPath $resolved -Recurse -Force }
 }

@@ -1,4 +1,3 @@
-.gitignore
 CHANGELOG.md
 CONTRIBUTING.md
 LICENSE
@@ -14,6 +13,7 @@ everything-fast-file-search/references/token-efficient-workflow.md
 everything-fast-file-search/scripts/Ensure-EverythingReady.ps1
 everything-fast-file-search/scripts/Diagnose-EverythingIpc.ps1
 everything-fast-file-search/scripts/Get-FileIdentity.ps1
+everything-fast-file-search/scripts/Invoke-EverythingCli.ps1
 everything-fast-file-search/scripts/Resolve-EverythingCli.ps1
 everything-fast-file-search/scripts/Search-Everything.ps1
 everything-fast-file-search/scripts/Search-Everything.Core.R1.ps1
@@ -21,6 +21,9 @@ everything-fast-file-search/tests/STATIC_TEST_PLAN.md
 everything-fast-file-search/tests/Test-EverythingIpcDiagnostic.ps1
 everything-fast-file-search/tests/Test-ExtensionArgumentRegression.ps1
 everything-fast-file-search/tests/Test-SearchSmoke.ps1
+everything-fast-file-search/tests/Test-CliResolution.ps1
+everything-fast-file-search/tests/Test-CliTransport.ps1
+everything-fast-file-search/tests/Test-NativeErrorTransport.ps1
 everything-fast-file-search/tests/fixtures/EFS_REGRESSION_TARGET.dat
 everything-fast-file-search/tests/fixtures/EFS_REGRESSION_TARGET.inp
 everything-fast-file-search/tests/fixtures/EFS_REGRESSION_TARGET.msg

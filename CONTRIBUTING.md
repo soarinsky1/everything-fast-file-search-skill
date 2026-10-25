@@ -15,5 +15,6 @@ Contributions are welcome when they preserve the project's core design goals:
 - Run `Test-EverythingIpcDiagnostic.ps1`.
 - Run `Test-ExtensionArgumentRegression.ps1`.
 - Run `Test-SearchSmoke.ps1`.
+- Run `Test-CliResolution.ps1`, `Test-CliTransport.ps1` and `Test-NativeErrorTransport.ps1` using Windows PowerShell 5.1; also exercise PowerShell 7 when available.
 - Confirm no personal paths, project names, proprietary filenames, or private data are included.
 - Keep public examples generic.

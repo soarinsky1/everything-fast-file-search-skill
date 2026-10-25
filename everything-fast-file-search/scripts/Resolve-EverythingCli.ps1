@@ -1,47 +1,65 @@
 [CmdletBinding()]
-param()
+param(
+    [string]$EverythingCliPath
+)
 
 $ErrorActionPreference = 'Stop'
 
-function Test-CandidatePath {
-    param([string]$Path)
-    return ($Path -and (Test-Path -LiteralPath $Path -PathType Leaf))
+function Add-Candidate([System.Collections.Generic.List[string]]$List, [string]$Path) {
+    if (-not [string]::IsNullOrWhiteSpace($Path) -and -not $List.Contains($Path)) {
+        $List.Add($Path)
+    }
 }
 
-$cmd = Get-Command es.exe -ErrorAction SilentlyContinue | Select-Object -First 1
-if ($cmd -and (Test-CandidatePath $cmd.Source)) {
-    $cmd.Source
-    return
+$candidates = New-Object 'System.Collections.Generic.List[string]'
+
+if ($EverythingCliPath) {
+    Add-Candidate $candidates $EverythingCliPath
 }
 
-$candidates = @(
-    (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\es.exe'),
-    (Join-Path $env:ProgramFiles 'Everything\es.exe')
-)
+$cmd = Get-Command es.exe -ErrorAction SilentlyContinue
+if ($cmd -and $cmd.Source) {
+    Add-Candidate $candidates $cmd.Source
+}
 
+if ($env:LOCALAPPDATA) {
+    Add-Candidate $candidates (Join-Path $env:LOCALAPPDATA 'Microsoft\WindowsApps\es.exe')
+}
+if ($env:ProgramFiles) {
+    Add-Candidate $candidates (Join-Path $env:ProgramFiles 'Everything\es.exe')
+}
 if (${env:ProgramFiles(x86)}) {
-    $candidates += (Join-Path ${env:ProgramFiles(x86)} 'Everything\es.exe')
+    Add-Candidate $candidates (Join-Path ${env:ProgramFiles(x86)} 'Everything\es.exe')
+}
+if ($env:LOCALAPPDATA) {
+    # Exact official package location remains readable in some environments that
+    # deny directory enumeration. Do not require listing it to locate the file.
+    Add-Candidate $candidates (Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages\voidtools.Everything.Cli_Microsoft.Winget.Source_8wekyb3d8bbwe\es.exe')
 }
 
 foreach ($candidate in $candidates) {
-    if (Test-CandidatePath $candidate) {
-        $candidate
-        return
+    if (Test-Path -LiteralPath $candidate -PathType Leaf) {
+        $resolved = (Resolve-Path -LiteralPath $candidate).Path
+        Write-Output $resolved
+        exit 0
     }
 }
 
-$wingetRoot = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
-if (Test-Path -LiteralPath $wingetRoot -PathType Container) {
-    $candidate = Get-ChildItem -LiteralPath $wingetRoot -Directory -Filter 'voidtools.Everything.Cli_*' -ErrorAction SilentlyContinue |
-        ForEach-Object {
-            Get-ChildItem -LiteralPath $_.FullName -File -Filter 'es.exe' -Recurse -ErrorAction SilentlyContinue
-        } |
-        Select-Object -First 1
-
-    if ($candidate) {
-        $candidate.FullName
-        return
+# WinGet packages are not always visible through PATH in a fresh/sandboxed shell.
+# Search only the official CLI package subtree, never a user/project drive.
+if ($env:LOCALAPPDATA) {
+    $wingetRoot = Join-Path $env:LOCALAPPDATA 'Microsoft\WinGet\Packages'
+    if (Test-Path -LiteralPath $wingetRoot -PathType Container) {
+        $packages = @(Get-ChildItem -LiteralPath $wingetRoot -Directory -Filter 'voidtools.Everything.Cli_*' -ErrorAction SilentlyContinue | Sort-Object FullName)
+        foreach ($package in $packages) {
+            $candidate = Get-ChildItem -LiteralPath $package.FullName -Filter 'es.exe' -File -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName | Select-Object -First 1
+            if ($candidate) {
+                Write-Output $candidate.FullName
+                exit 0
+            }
+        }
     }
 }
 
-throw 'es.exe was not found. Install the Everything command-line interface or add it to PATH.'
+Write-Error 'es.exe was not found. Install the official Everything CLI or provide -EverythingCliPath.'
+exit 2
