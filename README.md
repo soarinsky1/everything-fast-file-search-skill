@@ -24,7 +24,7 @@ This skill uses the official Everything command-line interface (`es.exe`) to:
 3. return only the candidate paths and metadata the agent needs;
 4. optionally export CSV/JSON for downstream automation;
 5. optionally hash only a small final candidate set;
-6. recover automatically when Everything is installed but not currently running.
+6. optionally start a missing Everything client when explicitly authorized.
 
 The design goal is **bounded context**, not just fast search.
 
@@ -38,11 +38,14 @@ The design goal is **bounded context**, not just fast search.
 - CSV and JSON export
 - Optional SHA-256 for small candidate sets
 - Automatic Everything IPC readiness check
-- Automatic start of `Everything.exe` on IPC Error 8 when safe
+- Explicitly authorized client startup through `-AllowStart`; read-only discovery by default
 - Error 8 diagnosis, including known elevation mismatch detection
 - One bounded 750 ms transient retry for readiness and actual searches
 - PowerShell 5.1 compatible scripts
 - Regression coverage for the PowerShell 5.1 + `es.exe` argument-construction pitfall
+- Shared CLI resolution, including WinGet fallback when PATH is unavailable
+- UTF-8 native capture for Chinese and other Unicode filenames
+- Failure-only JSON evidence for IPC and process-launch errors, including Win32 5/623
 - Fail-closed guidance: search results locate candidates; they do not establish semantic authority
 
 ## Requirements
@@ -68,7 +71,6 @@ everything-fast-file-search-skill/
 ├─ CHANGELOG.md
 ├─ CONTRIBUTING.md
 ├─ SECURITY.md
-├─ .gitignore
 └─ everything-fast-file-search/
    ├─ SKILL.md
    ├─ agents/
@@ -77,6 +79,7 @@ everything-fast-file-search-skill/
    │  ├─ Resolve-EverythingCli.ps1
    │  ├─ Ensure-EverythingReady.ps1
    │  ├─ Diagnose-EverythingIpc.ps1
+   │  ├─ Invoke-EverythingCli.ps1
    │  ├─ Search-Everything.ps1
    │  ├─ Search-Everything.Core.R1.ps1
    │  └─ Get-FileIdentity.ps1
@@ -86,6 +89,9 @@ everything-fast-file-search-skill/
    └─ tests/
       ├─ Test-ExtensionArgumentRegression.ps1
       ├─ Test-EverythingIpcDiagnostic.ps1
+      ├─ Test-NativeErrorTransport.ps1
+      ├─ Test-CliResolution.ps1
+      ├─ Test-CliTransport.ps1
       ├─ Test-SearchSmoke.ps1
       ├─ STATIC_TEST_PLAN.md
       └─ fixtures/
@@ -128,7 +134,11 @@ $skill = "$env:USERPROFILE\.agents\skills\everything-fast-file-search"
 & "$skill\scripts\Ensure-EverythingReady.ps1"
 ```
 
-For normal runtime discovery, invoke `Search-Everything.ps1` directly; it performs the readiness check. A first IPC Error 8 is retried once after 750 ms. A known elevation mismatch fails fast, while a transient Error 8 during the actual search is retried once with the same search parameters.
+For normal runtime discovery, invoke `Search-Everything.ps1` directly; it performs the readiness check. Readiness and actual search each permit one identical 750 ms retry for Error 8, independently of `-AllowStart`. Other errors do not trigger that transient retry. Omit `-AllowStart` for read-only discovery; include it only when the user authorizes starting a missing client. Running clients are never terminated or restarted.
+
+Readiness and search use the same resolved `es.exe`. Native output is captured with explicit redirection and UTF-8 search decoding. Final failures preserve compact JSON evidence on stdout. A process-launch failure is `ES_LAUNCH_FAILED` (wrapper exit 1), with its separate `WIN32_ERROR_CODE`; error 623 is not an ES search exit code.
+
+Sandbox restrictions can prevent launching the CLI or reaching IPC. For final sandbox Error 8 or launch errors 5/623, the agent can request one identical bounded host-context call through its execution tool's approval mechanism. The script does not bypass the sandbox or grant approval. If approval is unavailable/denied, or the host call fails too, use only the fallback allowed by the task. These diagnostics do not guarantee that every environment failure can be recovered automatically.
 
 ### Search by basename
 
@@ -236,6 +246,19 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass `
 
 The fixture-based tests contain no project-specific paths or proprietary files.
 
+Additional synthetic regressions (no running Everything required):
+
+```powershell
+powershell.exe -NoProfile -File ".\everything-fast-file-search\tests\Test-CliResolution.ps1"
+powershell.exe -NoProfile -File ".\everything-fast-file-search\tests\Test-CliTransport.ps1"
+powershell.exe -NoProfile -File ".\everything-fast-file-search\tests\Test-NativeErrorTransport.ps1"
+```
+
+These three drivers compile temporary fake console programs using Windows PowerShell
+5.1. To also exercise a PowerShell 7 search host, add `-SearchPowerShellExe`
+with the full path to `pwsh.exe`. Fixtures and exports are temporary and cleaned up.
+The extension regression and optional search smoke test use the real Everything index.
+
 ## Versioning
 
 This repository uses semantic versioning:
@@ -244,7 +267,7 @@ This repository uses semantic versioning:
 - minor: backward-compatible features;
 - major: breaking behavior or interface changes.
 
-Current release: **v1.1.0**.
+Current release: **v1.2.0**.
 
 ## License
 
